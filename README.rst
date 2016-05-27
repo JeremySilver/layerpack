@@ -49,7 +49,7 @@ arrays for each packed variable).
 Usage
 -----
 
-~~~
+```
 ## Apply the linear scaling to variables U, V and W at each level of
 ## dimensions z and time - all other variables are copied unchanged.
 $ ncpack -v U,V,W -d z,time orig.nc packed.nc
@@ -65,7 +65,7 @@ $ nccheckdiff -d z,time orig.nc unpacked.nc
 
 ## Get help about usage of a command, e.g. ncpack
 $ ncpack -h
-~~~~
+```
 
 Installation of the command-line utilities
 --------
