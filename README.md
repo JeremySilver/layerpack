@@ -72,6 +72,8 @@ Installation of the command-line utilities
 
 Installation right from the source tree (or via pip from PyPI)::
 
-    $ python setup.py install
+```
+$ python setup.py install
+```
 
 The command line utilites are now available.
