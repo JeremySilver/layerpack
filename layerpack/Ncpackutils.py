@@ -2,6 +2,7 @@ import numpy
 import sys
 import netCDF4
 import datetime
+import warnings
 
 def list_intersection(x,y):
     return list(set(x).intersection(y))
@@ -9,15 +10,46 @@ def list_intersection(x,y):
 def list_difference(x,y):
     return list(set(x) - set(y))
 
-def pack_to_short(x, max_packed_value = 64000, missing_value = None, packed_missing_value = numpy.uint16(65535)):
-    if numpy.isinf(x).any():
-        x[numpy.where(numpy.isinf(x))] = numpy.NaN
+def pack_to_short(x, max_packed_value = 64000.0, missing_value = None, fill_value = None):
     
+    packed_nan_value     = numpy.uint16(65531)
+    packed_neginf_value  = numpy.uint16(65532)
+    packed_posinf_value  = numpy.uint16(65533)
+    packed_fill_value    = numpy.uint16(65534)
+    packed_missing_value = numpy.uint16(65535)
+
+    warnings.filterwarnings('ignore') ## ignore odd warnings from numpy.isnan(x).any() and others
+    
+    nan_mask = None
+    if numpy.isnan(x).any():
+        nan_mask = numpy.where(numpy.isnan(x))
+
+    neginf_mask = None
+    if numpy.isneginf(x).any():
+        neginf_mask = numpy.where(numpy.isneginf(x))
+        x[neginf_mask] = numpy.nan
+    
+    posinf_mask = None
+    if numpy.isposinf(x).any():
+        posinf_mask = numpy.where(numpy.isposinf(x))
+        x[posinf_mask] = numpy.nan
+
+    warnings.resetwarnings() ## turn it off
+
+    fill_mask = None
+    if fill_value is not None:
+        if (x == fill_value).any():
+            fill_mask = numpy.where(x == fill_value)
+            x[fill_mask] = numpy.nan
+
+    missing_mask = None
     if missing_value is not None:
-        x[numpy.where(x == missing_value)] = numpy.NaN
+        if (x == missing_value).any():
+            missing_mask = numpy.where(x == missing_value)
+            x[missing_mask] = numpy.nan
     ##
-    xmin = numpy.nanmin(x)
-    xmax = numpy.nanmax(x)
+    xmin = numpy.float64(numpy.nanmin(x))
+    xmax = numpy.float64(numpy.nanmax(x))
     packed = numpy.ones(x.shape, dtype = numpy.uint16)
     if not (numpy.isfinite(xmin) and numpy.isfinite(xmax)): ## all values are NaN
         scale_factor = 1.0
@@ -30,8 +62,24 @@ def pack_to_short(x, max_packed_value = 64000, missing_value = None, packed_miss
         add_offset = xmin
         scale_factor = (xmax - xmin)/max_packed_value
         # print 'xmax,xmin,max_packed_value,scale_factor',xmax,xmin,max_packed_value,scale_factor
-        packed[:] = numpy.uint16( (x - add_offset) / scale_factor )
-        ##
+        packed[:] = numpy.uint16( (numpy.float64(x) - add_offset) / scale_factor )
+
+    if nan_mask is not None:
+        packed[nan_mask]     = packed_nan_value
+    
+    if neginf_mask is not None:
+        packed[neginf_mask]  = packed_neginf_value
+    
+    if posinf_mask is not None:
+        packed[posinf_mask]  = packed_posinf_value
+
+    if fill_mask is not None:
+        packed[fill_mask]    = packed_fill_value
+
+    if missing_mask is not None:
+        packed[missing_mask] = packed_missing_value
+    ##
+    ##
     return (add_offset, scale_factor, packed)
 
 def listVariables(dataset):

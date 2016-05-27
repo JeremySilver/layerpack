@@ -55,6 +55,13 @@ def main():
     scale_pattern = re.compile(".*___scale$")    
     offset_pattern = re.compile(".*___offset$")
 
+    ## values to check for and replace
+    packed_nan_value     = numpy.uint16(65531)
+    packed_neginf_value  = numpy.uint16(65532)
+    packed_posinf_value  = numpy.uint16(65533)
+    packed_fill_value    = numpy.uint16(65534)
+    packed_missing_value = numpy.uint16(65535)
+
     ## create dimensions in outfile
     splitDims = []
     for k in ncin.dimensions.keys():
@@ -101,8 +108,8 @@ def main():
             iSplitDim = numpy.array([ list(ncin.variables[var].dimensions).index(d) for d in theseSplitDims ])
             iSplitDim.sort()
             ##
-            chunksizes = numpy.array([len(ncin.dimensions[d]) for d in ncin.variables[var].dimensions])
-            chunksizes[iSplitDim] = 1
+            ## chunksizes = numpy.array([len(ncin.dimensions[d]) for d in ncin.variables[var].dimensions])
+            ## chunksizes[iSplitDim] = 1
             ##
             packed = ncin.variables[var][:]
             add_offset = ncin.variables[varoffset][:]
@@ -113,6 +120,19 @@ def main():
             for isplit in range(nsplits):
                 indices[iSplitDim] = splitDimIdxs[isplit]
                 Data[tuple(indices)] = add_offset[tuple(splitDimIdxs[isplit])] + packed[tuple(indices)] * scale_factor[tuple(splitDimIdxs[isplit])]
+            ##
+
+            Data[numpy.where(Data == packed_nan_value    )] = numpy.nan
+            Data[numpy.where(Data == packed_neginf_value )] = -numpy.inf
+            Data[numpy.where(Data == packed_posinf_value )] = numpy.inf
+
+            if '_FillValue' in ncin.variables[var].ncattrs():
+                if (Data == packed_fill_value).any():
+                    Data[numpy.where(Data == packed_fill_value)] = ncin.variables[var].getncattr('_FillValue')
+
+            if 'missing_value' in ncin.variables[var].ncattrs():
+                if (Data == packed_missing_value).any():
+                    Data[numpy.where(Data == packed_missing_value)] = ncin.variables[var].missing_value
 
             ## create an output variable
             varout = ncout.createVariable(varname = varstem, datatype = 'f4', dimensions = ncin.variables[var].dimensions, zlib = True, shuffle = True)

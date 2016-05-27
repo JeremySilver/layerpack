@@ -91,12 +91,26 @@ def main():
     if (len(splitVars) == 1) and splitVars[0] == '*':
         splitVars = ncin.variables.keys()
 
-    for var in ncin.variables.keys():
+    ## write out the coordinate variables first
+    Vars = ncin.variables.keys()
+    for dim in ncin.dimensions.keys():
+        if dim in Vars:
+            ## insert the coordinate variable at the start
+            Vars = [dim] + [v for i,v in enumerate(Vars) if v != dim]
+            
+    # coordVars = list(set(Vars).intersection(set(ncin.dimensions.keys())))
+    # coordVars.sort()
+    # noncoordVars = list(set(Vars) - set(ncin.dimensions.keys()))
+    # noncoordVars.sort()
+    # allVars = coordVars + noncoordVars
+
+    for var in Vars:
         ## extract the type
         Type = ncin.variables[var].dtype.str
         Type = re.sub(r"[<>]", "", Type)
         ## decide whether to shuffle or not
         doShuffle = Type in shuffle_types
+        doShuffle = True
         ##
         ## split only if:
         ## a) requested,
@@ -132,16 +146,26 @@ def main():
 
             ## define new variables (one with the data in packed format, and two
             ## new arrays, with the scale and offset factors)
-            varshort = ncout.createVariable(varname = "%s___short" % (var), datatype = 'u2', dimensions = ncin.variables[var].dimensions, zlib = True, shuffle = True, chunksizes = chunksizes, complevel = level)
-            varscale = ncout.createVariable(varname = "%s___scale" % (var), datatype = 'f4', dimensions = tuple(theseSplitDims), zlib = True, complevel = level, shuffle = False)
-            varoffset = ncout.createVariable(varname = "%s___offset" % (var), datatype = 'f4', dimensions = tuple(theseSplitDims), zlib = True, complevel = level, shuffle = False)
+            shortname = "%s___short" % (var)
+            scalename = "%s___scale" % (var)
+            offsetname = "%s___offset" % (var)
+            ncout.createVariable(varname = shortname, datatype = 'u2', dimensions = ncin.variables[var].dimensions, zlib = True, shuffle = True, chunksizes = chunksizes, complevel = level)
+            ncout.createVariable(varname = scalename, datatype = 'f4', dimensions = tuple(theseSplitDims), zlib = True, complevel = level, shuffle = False)
+            ncout.createVariable(varname = offsetname, datatype = 'f4', dimensions = tuple(theseSplitDims), zlib = True, complevel = level, shuffle = False)
 
             nsplits = len(splitDimIdxs)
+            ##
             if 'missing_value' in ncin.variables[var].ncattrs():
                 missing_value = ncin.variables[var].missing_value
             else:
                 missing_value = None
             ##
+            if '_FillValue' in ncin.variables[var].ncattrs():
+                fill_value = ncin.variables[var]._FillValue
+            else:
+                fill_value = None
+            ##
+            ncin.variables[var].set_auto_mask(False)
             Data = ncin.variables[var][:]
             packedDimLens = tuple([ len(ncin.dimensions[d]) for d in list(theseSplitDims)])
 
@@ -155,27 +179,32 @@ def main():
                 add_offset[tuple(splitDimIdxs[isplit])], scale_factor[tuple(splitDimIdxs[isplit])], packed[tuple(indices)] = Ncpackutils.pack_to_short(Data[tuple(indices)], missing_value = missing_value)
 
             ## write the data
-            varshort[:] = packed
-            varoffset[:] = add_offset
-            varscale[:] = scale_factor
+            ncout.variables[shortname][:] = packed
+            ncout.variables[offsetname][:] = add_offset
+            ncout.variables[scalename][:] = scale_factor
+
+            del Data, packed, add_offset, scale_factor
 
             ## copy the attributes
             for att in ncin.variables[var].ncattrs():
                 if not (att[0] == '_'):
-                    varshort.setncattr(att,ncin.variables[var].getncattr(att))
+                    ncout.variables[shortname].setncattr(att,ncin.variables[var].getncattr(att))
+            ncout.sync()
 
         else: ## copy over variables that are not split
             if verbose:
-                print "copy",var," without packing", Type, doShuffle
+                print "copy",var," without packing"
 
             ## 
             ## create variable
-            result = ncout.createVariable(varname = var, datatype = Type, dimensions = ncin.variables[var].dimensions, zlib = True, shuffle = doShuffle, complevel = level)
+            chunksizes = ncin.variables[var].shape
+            result = ncout.createVariable(varname = var, datatype = Type, dimensions = ncin.variables[var].dimensions, zlib = True, shuffle = doShuffle, complevel = level, chunksizes = chunksizes)
             ## copy the attributes
             for att in ncin.variables[var].ncattrs():
                 ncout.variables[var].setncattr(att,ncin.variables[var].getncattr(att))
             ## copy the data
             ncout.variables[var][:] = ncin.variables[var][:]
+            ncout.sync()
     ##
     ## copy global attributes
     for att in ncin.ncattrs():

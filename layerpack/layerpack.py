@@ -2,7 +2,7 @@
 
 def __main__():
 
-    print "layerpack: command-line tools for packing/unpacking NetCDF arrays in slices
+    print """layerpack: command-line tools for packing/unpacking NetCDF arrays in slices
 
 Usage:
     ## Apply the linear scaling to variables U, V and W at each level of
@@ -28,5 +28,5 @@ Options:
   -d --dimensions d1,d2,...,dm      Pack for each slice across dimensions d1,d2,...,dm [only: ncpack]
   -L --deflatelevel=l               Compress data using deflate l=1,...,9 [only: ncpack, ncunpack]
   -O --overwrite                    Overwrite existing files [only: ncpack, ncunpack]
-"
+"""
 
