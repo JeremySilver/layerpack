@@ -76,4 +76,10 @@ Installation right from the source tree (or via pip from PyPI)::
 $ python setup.py install
 ```
 
-The command line utilites are now available.
+If you don't have root access, then you can install it your home area:
+
+```
+$ python setup.py install --user
+```
+
+The command line utilites should now be available.
