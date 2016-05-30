@@ -17,10 +17,10 @@ setup(
     name='layerpack',
     version='0.1.0',
     description='Command-line tools for packing/unpacking NetCDF arrays in slices',
-    long_description=open('README.rst').read(),
+    long_description=open('README.md').read(),
     author='Jeremy Silver',
     author_email='jeremy.silver@unimelb.edu.au',
-##    url='http://layerpack.rtfd.org/',
+##  url='http://layerpack.rtfd.org/',
     license='MIT',
     classifiers=[
         'Development Status :: 3 - Alpha',
@@ -44,8 +44,8 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'ncpack = layerpack.ncpack:main',
-            'ncunpack = layerpack.ncunpack:main',
+            'ncpacklayer = layerpack.ncpack:main',
+            'ncunpacklayer = layerpack.ncunpack:main',
             'nccheckdiff = layerpack.nccheckdiff:main'
         ]
     },
