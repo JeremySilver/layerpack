@@ -47,7 +47,7 @@ def main():
         # if type(val) == type(''):
         #    return '{:<10}'.format('--')
         # else:
-        return '{:10.4e}'.format(numpy.float(val))
+        return '{:15.4e}'.format(numpy.float(val))
 
     ## open the files
     nc = [netCDF4.Dataset(f, 'r') for f in files]
@@ -87,7 +87,7 @@ def main():
             raise Exception("Dimension {} not found in {}".format(d,fileA))
 
     ## print the header
-    print '{:<30} {:<10} {:<10} {:<10} {:<10}'.format('var','rmse','sd','ratio','maxratio')
+    print '{:<30} {:<15} {:<15} {:<15} {:<15} {:<15} {:<15} {:<15}'.format('var','rmse','mean_abs','sd','ratio_sd','maxratio_sd','ratio_mean','maxratio_mean')
     for var in variable_list:
         Type = nc[0].variables[var].dtype.str
         Type = re.sub(r"[<>]", "", Type)
@@ -101,8 +101,10 @@ def main():
                 sd0 = numpy.std(numpy.fabs(var0))
                 # with numpy.errstate(invalid='ignore'):
                 with numpy.errstate(invalid='ignore'):
-                    ratio = rmse/sd0
-                    maxratio = numpy.max(numpy.abs(var0 - var1))/sd0
+                    ratio_sd = rmse/sd0
+                    maxratio_sd = numpy.max(numpy.abs(var0 - var1))/sd0
+                    ratio_mean = rmse/mean0
+                    maxratio_mean = numpy.max(numpy.abs(var0 - var1))/mean0
             else:
                 theseSplitDims = Ncpackutils.list_intersection(nc[0].variables[var].dimensions,splitDims)
                 theseSplitDims.sort(Cmp)
@@ -132,20 +134,24 @@ def main():
                     indices[iSplitDim] = splitDimIdxs[isplit]
                     RMSE[tuple(splitDimIdxs[isplit])] = numpy.sqrt(numpy.nanmean(numpy.square(var0[tuple(indices)] - var1[tuple(indices)])))
                     MEAN[tuple(splitDimIdxs[isplit])] = numpy.nanmean(numpy.fabs(var0[tuple(indices)]))
-                    SD[tuple(splitDimIdxs[isplit])] = numpy.nanstd(numpy.fabs(var0[tuple(indices)]))
+                    SD[tuple(splitDimIdxs[isplit])] = numpy.nanstd(var0[tuple(indices)])
                 rmse = numpy.nanmean(RMSE)
+                mean0 = numpy.nanmean(numpy.fabs(var0))
                 sd0 = numpy.nanmean(SD)
                 with numpy.errstate(invalid='ignore'):
-                    RATIO = RMSE/SD
+                    RATIO_SD = RMSE/SD
+                    RATIO_MEAN = RMSE/MEAN
                 ##
                 if skipnan:
-                    ratio = numpy.nanmean(RATIO)
-                    maxratio = numpy.nanmax(RATIO)
+                    ratio_sd = numpy.nanmean(RATIO_SD)
+                    maxratio_sd = numpy.nanmax(RATIO_SD)
+                    ratio_mean = numpy.nanmean(RATIO_MEAN)
+                    maxratio_mean = numpy.nanmax(RATIO_MEAN)
                 else:
-                    ratio = RATIO.mean()
-                    maxratio = RATIO.max()
+                    ratio_sd = RATIO_SD.mean()
+                    maxratio_sd = RATIO_SD.max()
+                    ratio_mean = RATIO_MEAN.mean()
+                    maxratio_mean = RATIO_MEAN.max()
 
-
-            # print '{:<30} {:10.4e} {:10.4e} {:10.4e} {:10.4e}'.format(var,rmse,sd0,ratio,maxratio)
-            print '{:<30} {} {} {} {}'.format(var,format_value(rmse),format_value(sd0),format_value(ratio),format_value(maxratio))
+            print '{:<30} {} {} {} {} {} {} {}'.format(var,format_value(rmse),format_value(mean0),format_value(sd0),format_value(ratio_sd),format_value(maxratio_sd),format_value(ratio_mean),format_value(maxratio_mean))
 

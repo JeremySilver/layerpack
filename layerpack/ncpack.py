@@ -1,6 +1,5 @@
 import numpy
 import netCDF4
-# import h5netcdf.legacyapi as netCDF4
 import re
 import itertools
 import os
