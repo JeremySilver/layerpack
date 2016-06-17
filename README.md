@@ -52,10 +52,10 @@ Usage
 ```
 ## Apply the linear scaling to variables U, V and W at each level of
 ## dimensions z and time - all other variables are copied unchanged.
-$ ncpack -v U,V,W -d z,time orig.nc packed.nc
+$ ncpacklayer -v U,V,W -d z,time orig.nc packed.nc
 
 ## Return the packed variables to their original state
-$ ncunpack packed.nc unpacked.nc
+$ ncunpacklayer packed.nc unpacked.nc
 
 ## Calculate differences between the original and unpacked versions
 ## of this dataset, presenting errors as the RMSE difference
@@ -63,8 +63,8 @@ $ ncunpack packed.nc unpacked.nc
 ## z and time.
 $ nccheckdiff -d z,time orig.nc unpacked.nc
 
-## Get help about usage of a command, e.g. ncpack
-$ ncpack -h
+## Get help about usage of a command, e.g. ncpacklayer
+$ ncpacklayer -h
 ```
 
 Installation of the command-line utilities
